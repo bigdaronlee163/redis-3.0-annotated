@@ -47,7 +47,7 @@
  * keys requires a lot of space, so we check the most significant 2 bits of
  * the first byte to interpreter the length:
  *
- * 通过读取第一字节的最高 2 位来判断长度
+ * 通过读取第一字节的最高 2 位来判断长度 【共四种情况。】
  *
  * 00|000000 => if the two MSB are 00 the len is the 6 bits of this byte
  *              长度编码在这一字节的其余 6 位中

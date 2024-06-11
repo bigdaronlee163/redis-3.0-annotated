@@ -28,7 +28,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #ifndef __REDIS_RIO_H
 #define __REDIS_RIO_H
 
@@ -39,12 +38,18 @@
 /*
  * RIO API 接口和状态
  */
-struct _rio {
+struct _rio
+{
 
     /* Backend functions.
      * Since this functions do not tolerate short writes or reads the return
      * value is simplified to: zero on error, non zero on complete success. */
     // API
+    // 这几个方法在哪里实现的 ？？？
+    // 在下面 rioWrite  几个方法中，方法签名是相同的，也就是实现了这个这些方法。
+    // rioWrite rioRead rioTell 是通用的方法，包含了buffer 和 file的共同实现。
+    // 并且file的实现：rioFileRead rioFileWrite  rioFileTell
+    // buffer的实现：rioBufferRead  rioBufferWrite  rioBufferTell
     size_t (*read)(struct _rio *, void *buf, size_t len);
     size_t (*write)(struct _rio *, const void *buf, size_t len);
     off_t (*tell)(struct _rio *);
@@ -68,16 +73,20 @@ struct _rio {
     size_t max_processing_chunk;
 
     /* Backend-specific vars. */
-    union {
+    union
+    {
 
-        struct {
+        struct
+        {
             // 缓存指针
+            // sds 可以当成字节队列。 （Simple Dynamic String，简单动态字符串）
             sds ptr;
             // 偏移量
             off_t pos;
         } buffer;
 
-        struct {
+        struct
+        {
             // 被打开文件的指针
             FILE *fp;
             // 最近一次 fsync() 以来，写入的字节量
@@ -99,13 +108,23 @@ typedef struct _rio rio;
  *
  * 写入成功返回实际写入的字节数，写入失败返回 -1 。
  */
-static inline size_t rioWrite(rio *r, const void *buf, size_t len) {
-    while (len) {
+static inline size_t rioWrite(rio *r, const void *buf, size_t len)
+{
+    while (len)
+    {
+        // 如果写入的len大于最大允许的㝍读的大小的话，就按照最大允许的读写尺寸进行读写操作。
         size_t bytes_to_write = (r->max_processing_chunk && r->max_processing_chunk < len) ? r->max_processing_chunk : len;
-        if (r->update_cksum) r->update_cksum(r,buf,bytes_to_write);
-        if (r->write(r,buf,bytes_to_write) == 0)
+        // 检查函数指针 r->update_cksum 是否为NULL。
+        if (r->update_cksum)
+            r->update_cksum(r, buf, bytes_to_write);
+        // write中的方法是 rio中定义的。
+        // C 中的结构体和union中一般是没有方法的，因为他是面向过程的。
+        // 这里通过rio的封装即定义，完成了面向对象的方法调用。【在结构体中定义方法。】
+        if (r->write(r, buf, bytes_to_write) == 0)
             return 0;
-        buf = (char*)buf + bytes_to_write;
+        // 向后更改buf的指向。下次循环从新的位置开始写。
+        buf = (char *)buf + bytes_to_write;
+        // 写完就退出循环。
         len -= bytes_to_write;
         r->processed_bytes += bytes_to_write;
     }
@@ -117,13 +136,19 @@ static inline size_t rioWrite(rio *r, const void *buf, size_t len) {
  *
  * 读取成功返回 1 ，失败返回 0 。
  */
-static inline size_t rioRead(rio *r, void *buf, size_t len) {
-    while (len) {
+static inline size_t rioRead(rio *r, void *buf, size_t len)
+{
+    while (len)
+    {
         size_t bytes_to_read = (r->max_processing_chunk && r->max_processing_chunk < len) ? r->max_processing_chunk : len;
-        if (r->read(r,buf,bytes_to_read) == 0)
+        if (r->read(r, buf, bytes_to_read) == 0)
             return 0;
-        if (r->update_cksum) r->update_cksum(r,buf,bytes_to_read);
-        buf = (char*)buf + bytes_to_read;
+        // 存在校验函数，就进行sum校验。
+        if (r->update_cksum)
+            r->update_cksum(r, buf, bytes_to_read);
+        // 更改下次开始读的位置。
+        buf = (char *)buf + bytes_to_read;
+        // 读完就退出循环。
         len -= bytes_to_read;
         r->processed_bytes += bytes_to_read;
     }
@@ -133,13 +158,14 @@ static inline size_t rioRead(rio *r, void *buf, size_t len) {
 /*
  * 返回 r 的当前偏移量。
  */
-static inline off_t rioTell(rio *r) {
+static inline off_t rioTell(rio *r)
+{
     return r->tell(r);
 }
 
 void rioInitWithFile(rio *r, FILE *fp);
 void rioInitWithBuffer(rio *r, sds s);
-
+//
 size_t rioWriteBulkCount(rio *r, char prefix, int count);
 size_t rioWriteBulkString(rio *r, const char *buf, size_t len);
 size_t rioWriteBulkLongLong(rio *r, long long l);
