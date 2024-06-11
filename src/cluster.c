@@ -5031,8 +5031,10 @@ void createDumpPayload(rio *payload, robj *o) {
     // +-------------+------+
     // | 1 byte type | obj  |
     // +-------------+------+
+    // buffer的初始化。
     rioInitWithBuffer(payload,sdsempty());
     redisAssert(rdbSaveObjectType(payload,o));
+    // 序列化的主要步骤。 
     redisAssert(rdbSaveObject(payload,o));
 
     /* Write the footer, this is how it looks like:
@@ -5058,7 +5060,7 @@ void createDumpPayload(rio *payload, robj *o) {
     // 整个数据的结构:
     //
     // | <--- 序列化数据 -->|
-    // +-------------+------+---------------------+---------------+
+    // +-------------+------+---------------------+---------------+   
     // | 1 byte type | obj  | 2 bytes RDB version | 8 bytes CRC64 |
     // +-------------+------+---------------------+---------------+
 

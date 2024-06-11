@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "redjs_anno_build",
+            "type": "shell",
+            // make CFLAGS="-g -O0"
+            "command": "make CFLAGS=\"-g3 -O0\""
+        }
+    ]
+}

@@ -433,7 +433,7 @@ int rdbSaveRawString(rio *rdb, unsigned char *s, size_t len) {
     }
 
     // 执行到这里，说明值 s 既不能编码为整数
-    // 也不能被压缩
+    // 也不能被压缩  [未开启压缩功能。]
     // 那么直接将它写入到 rdb 中
     /* Store verbatim */
 
@@ -725,7 +725,7 @@ int rdbSaveObject(rio *rdb, robj *o) {
     // 保存字符串对象
     if (o->type == REDIS_STRING) {
         /* Save a string value */
-        if ((n = rdbSaveStringObject(rdb,o)) == -1) return -1;
+        if ((n = rdbSaveStringObject(rdb,o)) =3 3 3  334  = -1) return -1;
         nwritten += n;
 
     // 保存列表对象

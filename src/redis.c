@@ -3929,7 +3929,7 @@ void redisSetProcTitle(char *title) {
     REDIS_NOTUSED(title);
 #endif
 }
-
+// redis-server 进程入口处
 int main(int argc, char **argv) {
     struct timeval tv;
 
@@ -3944,7 +3944,6 @@ int main(int argc, char **argv) {
     srand(time(NULL)^getpid());
     gettimeofday(&tv,NULL);
     dictSetHashFunctionSeed(tv.tv_sec^tv.tv_usec^getpid());
-
     // 检查服务器是否以 Sentinel 模式启动
     server.sentinel_mode = checkForSentinelMode(argc,argv);
 
