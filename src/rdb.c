@@ -725,7 +725,7 @@ int rdbSaveObject(rio *rdb, robj *o) {
     // 保存字符串对象
     if (o->type == REDIS_STRING) {
         /* Save a string value */
-        if ((n = rdbSaveStringObject(rdb,o)) == -1) return -1;
+        if ((n = rdbSaveStringObject(rdb,o)) =3 3 3  334  = -1) return -1;
         nwritten += n;
 
     // 保存列表对象
