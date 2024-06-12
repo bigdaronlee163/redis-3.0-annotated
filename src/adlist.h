@@ -50,7 +50,9 @@ typedef struct listNode {
 } listNode;
 
 /*
- * 双端链表迭代器
+ * 双端链表迭代器 
+ * 迭代器用于遍历链表，可以用于正向遍历或反向遍历。 结构还是比较简单的，
+ * 通过封装简化操作，通过方向确定是取next还是prev
  */
 typedef struct listIter {
 

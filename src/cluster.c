@@ -5174,6 +5174,7 @@ void restoreCommand(redisClient *c) {
     }
 
     // 读取 DUMP 数据，并反序列化出键值对的类型和值
+    // Restore的核心函数，啊挺长的。
     rioInitWithBuffer(&payload,c->argv[3]->ptr);
     if (((type = rdbLoadObjectType(&payload)) == -1) ||
         ((obj = rdbLoadObject(type,&payload)) == NULL))
@@ -5187,10 +5188,11 @@ void restoreCommand(redisClient *c) {
     if (replace) dbDelete(c->db,c->argv[1]);
 
     /* Create the key and set the TTL if any */
-    // 将键值对添加到数据库
+    // 将键值对添加到数据库  【使用rocksdb保存。】
     dbAdd(c->db,c->argv[1],obj);
 
     // 如果键带有 TTL 的话，设置键的 TTL
+    // 设置rocksdb的属性。
     if (ttl) setExpire(c->db,c->argv[1],mstime()+ttl);
 
     signalModifiedKey(c->db,c->argv[1]);
