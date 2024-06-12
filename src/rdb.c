@@ -197,10 +197,15 @@ uint32_t rdbLoadLen(rio *rdb, int *isencoded) {
  * 并返回值在编码后所需的长度。
  *
  * 如果不能编码的话，返回 0 。
+ * 
+ * 2  3  5 ，每种编码，都会存在一个字节的类型信息。
  */
 int rdbEncodeInteger(long long value, unsigned char *enc) {
-
+    // (1<<7)-1 为 127 
+    // 范围就是 -128 到 127 。
+    // 这里的是 INT8
     if (value >= -(1<<7) && value <= (1<<7)-1) {
+        // 当头两位是 REDIS_RDB_ENCVAL 11的时候，后面的 3 4 位 为表示对象的编码。
         enc[0] = (REDIS_RDB_ENCVAL<<6)|REDIS_RDB_ENC_INT8;
         enc[1] = value&0xFF;
         return 2;
@@ -284,8 +289,14 @@ int rdbTryIntegerEncoding(char *s, size_t len, unsigned char *enc) {
     char *endptr, buf[32];
 
     /* Check if it's possible to encode this value as a number */
-    // 尝试将值转换为整数
+    // 尝试将值转换为整数   s 转成 long long
     value = strtoll(s, &endptr, 10);
+    // 指向字符串的末尾表示解析成功。  表示没有不能解析的成数字的字符。
+    /* 
+    如果输入字符串不能被完全转换为整数，strtol() 函数将返回转换成功的部分，
+    而 endptr 将指向未转换部分的第一个字符。在这个例子中，endptr 是指向字符串末尾的空字符 '\0'，表示整个输入字符串都被成功转换为整数。
+    如果输入字符串包含非数字字符，例如 "12ab"，那么 endptr 将指向 "ab" 的起始位置，指示转换失败。
+    */
     if (endptr[0] != '\0') return 0;
 
     // 尝试将转换后的整数转换回字符串
@@ -295,9 +306,10 @@ int rdbTryIntegerEncoding(char *s, size_t len, unsigned char *enc) {
      * then it's not possible to encode the string as integer */
     // 检查两次转换后的整数值能否还原回原来的字符串
     // 如果不行的话，那么转换失败
+    // [可能是字符中间存在 \0 字符，所以要再验证一次。]
     if (strlen(buf) != len || memcmp(buf,s,len)) return 0;
 
-    // 转换成功，对转换所得的整数进行特殊编码
+    // 转换成功，对转换所得的整数进行特殊编码 【8 16 32 位。再加一个字节，用于判断类型。】
     return rdbEncodeInteger(value,enc);
 }
 
@@ -335,7 +347,8 @@ int rdbSaveLzfStringObject(rio *rdb, unsigned char *s, size_t len) {
     byte = (REDIS_RDB_ENCVAL<<6)|REDIS_RDB_ENC_LZF;
     if ((n = rdbWriteRaw(rdb,&byte,1)) == -1) goto writeerr;
     nwritten += n;
-
+    
+    // 三个if判断，都使用了goto，会跳转到writeerr处。用于在失败的情况下释放内存。
     // 写入字符串压缩后的长度
     if ((n = rdbSaveLen(rdb,comprlen)) == -1) goto writeerr;
     nwritten += n;
@@ -397,6 +410,9 @@ err:
  * 如果对象是字符串表示的整数值，那么程序尝试以特殊的形式来保存它。
  *
  * 函数返回保存字符串所需的空间字节数。
+ * 
+ * 【在Encoding为ZIPLIST的时候，调用这个，估计很难使用整数值编码。
+ *  而是通过将内存中所有的字节识别为char，然后使用LFZ压缩算法。】
  */
 int rdbSaveRawString(rio *rdb, unsigned char *s, size_t len) {
     int enclen;
@@ -463,6 +479,7 @@ int rdbSaveLongLongAsStringObject(rio *rdb, long long value) {
     int n, nwritten = 0;
 
     // 尝试以节省空间的方式编码整数值 value 
+    // 如果value是较小的整数，则用整数编码数值。
     int enclen = rdbEncodeInteger(value,buf);
 
     // 编码成功，直接写入编码后的缓存
@@ -470,6 +487,7 @@ int rdbSaveLongLongAsStringObject(rio *rdb, long long value) {
     if (enclen > 0) {
         return rdbWriteRaw(rdb,buf,enclen);
 
+    // 32位机器上有符号int取值范围为[-2147483648,2147483647]
     // 编码失败，将整数值转换成对应的字符串来保存
     // 比如，值 999999999 要编码成 "999999999" ，
     // 因为这个值没办法用节省空间的方式编码
@@ -732,6 +750,10 @@ int rdbSaveObject(rio *rdb, robj *o) {
     } else if (o->type == REDIS_LIST) {
         /* Save a list value */
         if (o->encoding == REDIS_ENCODING_ZIPLIST) {
+            // 在计算机科学中，Blob通常表示二进制数据，例如图像、音频、视频文件、数据库表等。
+            // 在编程中，Blob通常表示一个字节序列，可以用于存储和传输数据。
+            // 在这个例子中，ziplistBlobLen函数用于获取压缩列表中存储的数据量，即Blob的大小。
+            // 这里是返回ziplist所在的内存的空间的大小，单位是字节。而不是ziplist中所占用的entry的大小。
             size_t l = ziplistBlobLen((unsigned char*)o->ptr);
 
             // 以字符串对象的形式保存整个 ZIPLIST 列表

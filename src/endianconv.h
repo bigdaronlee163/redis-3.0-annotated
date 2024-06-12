@@ -45,6 +45,10 @@ uint64_t intrev64(uint64_t v);
 
 /* variants of the function doing the actual convertion only if the target
  * host is big endian */
+// reverse、32、bit、integer、ifbe （big endian）。
+// 将int类型的数据，进行转换。
+// memrev* 对应的指针，intrev* 对应的值。
+// 如果环境是小端，则不进行转换。多数是小端。 网络和sol 操作系统是大端。所以旨在有必要的时候，才进行转换。
 #if (BYTE_ORDER == LITTLE_ENDIAN)
 #define memrev16ifbe(p)
 #define memrev32ifbe(p)

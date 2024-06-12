@@ -217,6 +217,11 @@ long long memtoll(const char *p, int *err) {
 /* Convert a long long into a string. Returns the number of
  * characters needed to represent the number, that can be shorter if passed
  * buffer length is not enough to store the whole number. */
+/*
+
+
+
+*/
 int ll2string(char *s, size_t len, long long value) {
     char buf[32], *p;
     unsigned long long v;
@@ -224,9 +229,12 @@ int ll2string(char *s, size_t len, long long value) {
 
     if (len == 0) return 0;
     v = (value < 0) ? -value : value;
+    // 这段代码是从后往前，通过模10将value 之后加上 '0' 转成字符串
     p = buf+31; /* point to the last character */
     do {
+        // 先赋值，然后在--。
         *p-- = '0'+(v%10);
+        // v 除以10 移除已经保存的最低一位。
         v /= 10;
     } while(v);
     if (value < 0) *p-- = '-';

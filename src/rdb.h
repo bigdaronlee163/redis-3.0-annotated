@@ -61,15 +61,18 @@
  * 11|000000 this means: specially encoded object will follow. The six bits
  *           number specify the kind of object that follows.
  *           See the REDIS_RDB_ENC_* defines.
- *           后跟一个特殊编码的对象。字节中的 6 位指定对象的类型。
+ *           后跟一个特殊编码的对象。字节中的剩余 6 位指定对象的类型。
  *           查看 REDIS_RDB_ENC_* 定义获得更多消息
+ * 3对应的二进制是11 
  *
  * Lenghts up to 63 are stored using a single byte, most DB keys, and may
- * values, will fit inside. 
+ * values, will fit inside.
  *
  * 一个字节（的其中 6 个字节）可以保存的最大长度是 63 （包括在内），
  * 对于大多数键和值来说，都已经足够了。
  */
+// 为什么是 6 位？ 因为高两位记录了整数编码类型。
+// 这里是rdb的格式，艹，看错了，就说不对。
 #define REDIS_RDB_6BITLEN 0
 #define REDIS_RDB_14BITLEN 1
 #define REDIS_RDB_32BITLEN 2
@@ -82,7 +85,7 @@
  * accordingly to the following defines:
  *
  * 当对象是一个字符串对象时，
- * 最高两个位之后的两个位（第 3 个位和第 4 个位）指定了对象的特殊编码
+ * 最高两个位之后的两个位（第 3 个位和第 4 个位）指定了对象的特殊编码  【 这里是从左往右数的。也就是高位的第 3 到 4 位 】
  */
 #define REDIS_RDB_ENC_INT8 0        /* 8 bit signed integer */
 #define REDIS_RDB_ENC_INT16 1       /* 16 bit signed integer */
@@ -92,7 +95,7 @@
 /* Dup object types to RDB object types. Only reason is readability (are we
  * dealing with RDB types or with in-memory object types?).
  *
- * 对象类型在 RDB 文件中的类型
+ * 对象类型在 RDB 文件中的类型  [这里定义的类型，不会和上面的int类型的冲突吗？上面的类型指的是 对象为字符串对象下一个层级的对象的特殊的编码。 ]
  */
 #define REDIS_RDB_TYPE_STRING 0
 #define REDIS_RDB_TYPE_LIST   1
@@ -112,7 +115,7 @@
 
 /* Test if a type is an object type.
  *
- * 检查给定类型是否对象
+ * 检查给定类型是否对象  [对象和对象的具体的编码还是要区分开的]
  */
 #define rdbIsObjectType(t) ((t >= 0 && t <= 4) || (t >= 9 && t <= 13))
 
