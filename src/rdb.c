@@ -760,6 +760,7 @@ int rdbSaveObject(rio *rdb, robj *o) {
             if ((n = rdbSaveRawString(rdb,o->ptr,l)) == -1) return -1;
             nwritten += n;
         } else if (o->encoding == REDIS_ENCODING_LINKEDLIST) {
+            // 先从链表的遍历方式开始学习吧。
             list *list = o->ptr;
             listIter li;
             listNode *ln;
