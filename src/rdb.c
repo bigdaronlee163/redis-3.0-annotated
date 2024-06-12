@@ -802,6 +802,7 @@ int rdbSaveObject(rio *rdb, robj *o) {
             size_t l = intsetBlobLen((intset*)o->ptr);
 
             // 以字符串对象的方式保存整个 INTSET 集合
+            // 在 rdbSaveRawString 方法中，存在用整数尝试压缩的方法，但是对于复杂的数据结构来说，基本不可能完成。
             if ((n = rdbSaveRawString(rdb,o->ptr,l)) == -1) return -1;
             nwritten += n;
         } else {
