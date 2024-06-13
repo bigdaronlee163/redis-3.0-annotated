@@ -74,6 +74,7 @@ typedef struct dictEntry {
     } v;
 
     // 指向下个哈希表节点，形成链表
+    // 如果没有这个链表（如果不冲突的话。），那么就是一个普通的数组。 通过哈希值来确定索引。
     struct dictEntry *next;
 
 } dictEntry;
@@ -112,15 +113,17 @@ typedef struct dictType {
  *
  * 每个字典都使用两个哈希表，从而实现渐进式 rehash 。
  */
-typedef struct dictht {
+typedef struct dictht { 
     
     // 哈希表数组
+    // 数组中存储 dictEntry * ;
+    // *table 可以指定一个动态分配大小的数组，（保存数组首地址即可。）
     dictEntry **table;
 
     // 哈希表大小
     unsigned long size;
     
-    // 哈希表大小掩码，用于计算索引值
+    // 哈希表大小掩码，用于计算索引值 【就是求余，为啥是掩码？ 奇怪？ 】
     // 总是等于 size - 1
     unsigned long sizemask;
 
@@ -137,7 +140,7 @@ typedef struct dict {
     // 类型特定函数
     dictType *type;
 
-    // 私有数据
+    // 私有数据  
     void *privdata;
 
     // 哈希表
@@ -162,7 +165,7 @@ typedef struct dict {
  * 如果 safe 属性的值为 1 ，那么在迭代进行的过程中，
  * 程序仍然可以执行 dictAdd 、 dictFind 和其他函数，对字典进行修改。
  *
- * 如果 safe 不为 1 ，那么程序只会调用 dictNext 对字典进行迭代，
+ *   如果 safe 不为 1 ，那么程序只会调用 dictNext 对字典进行迭代，
  * 而不对字典进行修改。
  */
 typedef struct dictIterator {
@@ -195,6 +198,7 @@ typedef void (dictScanFunction)(void *privdata, const dictEntry *de);
 
 /* ------------------------------- Macros ------------------------------------*/
 // 释放给定字典节点的值
+// type 是一个保存了几个函数指针的结构体。 
 #define dictFreeVal(d, entry) \
     if ((d)->type->valDestructor) \
         (d)->type->valDestructor((d)->privdata, (entry)->v.val)

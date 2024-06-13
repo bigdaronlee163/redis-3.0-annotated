@@ -768,9 +768,13 @@ int rdbSaveObject(rio *rdb, robj *o) {
             if ((n = rdbSaveLen(rdb,listLength(list))) == -1) return -1;
             nwritten += n;
 
-            // 遍历所有列表项
+            // 遍历所有列表项 
+            //  [这里相当于是重置了迭代器，然后在继续使用。]
+            // 【这里是将链表迭代器放到表头，从表头到表尾遍历。】
             listRewind(list,&li);
+            // 没有遇到next为null的时候，就继续遍历。
             while((ln = listNext(&li))) {
+                // eleobj 的指针是void * ，这里不需要强制类型转换吗？ 
                 robj *eleobj = listNodeValue(ln);
                 // 以字符串对象的形式保存列表项
                 if ((n = rdbSaveStringObject(rdb,eleobj)) == -1) return -1;
@@ -784,6 +788,7 @@ int rdbSaveObject(rio *rdb, robj *o) {
     } else if (o->type == REDIS_SET) {
         /* Save a set value */
         if (o->encoding == REDIS_ENCODING_HT) {
+            // dict的key是set中的元素，对应的value是null. 
             dict *set = o->ptr;
             dictIterator *di = dictGetIterator(set);
             dictEntry *de;
@@ -798,6 +803,7 @@ int rdbSaveObject(rio *rdb, robj *o) {
                 if ((n = rdbSaveStringObject(rdb,eleobj)) == -1) return -1;
                 nwritten += n;
             }
+            // dict 存在扩容，可能会导致迭代器失效。
             dictReleaseIterator(di);
         } else if (o->encoding == REDIS_ENCODING_INTSET) {
             size_t l = intsetBlobLen((intset*)o->ptr);

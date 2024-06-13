@@ -67,7 +67,7 @@ list *listCreate(void)
  *
  * This function can't fail. */
 /*
- * 释放整个链表，以及链表中所有节点
+ * 释放整个链表，以及链表中所有节点。 依次遍历链表。
  *
  * T = O(N)
  */
@@ -83,7 +83,7 @@ void listRelease(list *list)
     while(len--) {
         next = current->next;
 
-        // 如果有设置值释放函数，那么调用它
+        // 如果有设置值释放函数，那么调用它 【如果没有呢？ value就是不需要专门的free函数来释放】
         if (list->free) list->free(current->value);
 
         // 释放节点结构
@@ -306,7 +306,7 @@ listIter *listGetIterator(list *list, int direction)
 /*
  * 释放迭代器
  *
- * T = O(1)
+ * T = O(1)  在ListDup  ListSearchKey中有用到。可能涉及到节点的改变了。
  */
 void listReleaseIterator(listIter *iter) {
     zfree(iter);
@@ -315,9 +315,9 @@ void listReleaseIterator(listIter *iter) {
 /* Create an iterator in the list private iterator structure */
 /*
  * 将迭代器的方向设置为 AL_START_HEAD ，
- * 并将迭代指针重新指向表头节点。
+ * 并将迭代指针 重新 指向表头节点。
  *
- * T = O(1)
+ * T = O(1) Rewind是一个编程术语，通常表示将文件指针重置到文件的开头。
  */
 void listRewind(list *list, listIter *li) {
     li->next = list->head;
