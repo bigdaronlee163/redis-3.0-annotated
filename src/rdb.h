@@ -106,6 +106,10 @@
 /* Object types for encoded objects.
  *
  * 对象的编码方式
+ * 
+ * 
+ * 
+ * 
  */
 #define REDIS_RDB_TYPE_HASH_ZIPMAP    9
 #define REDIS_RDB_TYPE_LIST_ZIPLIST  10

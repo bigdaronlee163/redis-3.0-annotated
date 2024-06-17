@@ -158,27 +158,29 @@ uint32_t rdbLoadLen(rio *rdb, int *isencoded) {
 
     // 读入 length ，这个值可能已经被编码，也可能没有
     if (rioRead(rdb,buf,1) == 0) return REDIS_RDB_LENERR;
-
+    // 1100 0000 对应  0xC0 。也就是保留高两位。
     type = (buf[0]&0xC0)>>6;
 
-    // 编码值，进行解码
+    // 编码值，进行解码  11
     if (type == REDIS_RDB_ENCVAL) {
         /* Read a 6 bit encoding type. */
         if (isencoded) *isencoded = 1;
+        //  0011 11111 对应  0x3F 。
+        // 如果type是11 ，那就表示字节中的剩余 6 位指定对象的类型。 
         return buf[0]&0x3F;
 
-    // 6 位整数
+    // 6 位整数   00
     } else if (type == REDIS_RDB_6BITLEN) {
         /* Read a 6 bit len. */
         return buf[0]&0x3F;
 
-    // 14 位整数
+    // 14 位整数 01 
     } else if (type == REDIS_RDB_14BITLEN) {
         /* Read a 14 bit len. */
         if (rioRead(rdb,buf+1,1) == 0) return REDIS_RDB_LENERR;
         return ((buf[0]&0x3F)<<8)|buf[1];
 
-    // 32 位整数
+    // 32 位整数 10
     } else {
         /* Read a 32 bit len. */
         if (rioRead(rdb,&len,4) == 0) return REDIS_RDB_LENERR;
@@ -1239,6 +1241,7 @@ robj *rdbLoadObject(int rdbtype, rio *rdb) {
             if (o->encoding == REDIS_ENCODING_ZIPLIST &&
                 sdsEncodedObject(ele) &&
                 sdslen(ele->ptr) > server.list_max_ziplist_value)
+                    // 如果元素过多，就将列表转成list。
                     listTypeConvert(o,REDIS_ENCODING_LINKEDLIST);
 
             // ZIPLIST
@@ -1530,6 +1533,7 @@ robj *rdbLoadObject(int rdbtype, rio *rdb) {
                 o->encoding = REDIS_ENCODING_ZIPLIST;
 
                 // 检查是否需要转换编码
+                // 长度为 512 
                 if (ziplistLen(o->ptr) > server.list_max_ziplist_entries)
                     listTypeConvert(o,REDIS_ENCODING_LINKEDLIST);
                 break;

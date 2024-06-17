@@ -5086,6 +5086,13 @@ int verifyDumpPayload(unsigned char *p, size_t len) {
     // 因为序列化数据至少包含 2 个字节的 RDB 版本
     // 以及 8 个字节的 CRC64 校验和
     // 所以序列化数据不可能少于 10 个字节
+    // 序列化数据的结构，可以参考函数中的注释： createDumpPayload
+    // 整个数据的结构:
+    //
+    // | <--- 序列化数据 -->|
+    // +-------------+------+---------------------+---------------+   
+    // | 1 byte type | obj  | 2 bytes RDB version | 8 bytes CRC64 |
+    // +-------------+------+---------------------+---------------+
     if (len < 10) return REDIS_ERR;
 
     // 指向数据的最后 10 个字节
@@ -5140,6 +5147,7 @@ void restoreCommand(redisClient *c) {
 
     /* Parse additional options */
     // 是否使用了 REPLACE 选项？
+    // restore命令，总共是5个参数，下标从0尅还是。
     for (j = 4; j < c->argc; j++) {
         if (!strcasecmp(c->argv[j]->ptr,"replace")) {
             replace = 1;
@@ -5167,6 +5175,7 @@ void restoreCommand(redisClient *c) {
 
     /* Verify RDB version and data checksum. */
     // 检查 RDB 版本和校验和
+    // 第三个参数就是要反序列化的字符串。
     if (verifyDumpPayload(c->argv[3]->ptr,sdslen(c->argv[3]->ptr)) == REDIS_ERR)
     {
         addReplyError(c,"DUMP payload version or checksum are wrong");
@@ -5174,8 +5183,9 @@ void restoreCommand(redisClient *c) {
     }
 
     // 读取 DUMP 数据，并反序列化出键值对的类型和值
-    // Restore的核心函数，啊挺长的。
+    // Restore的核心函数 rdbLoadObject ，挺长的。
     rioInitWithBuffer(&payload,c->argv[3]->ptr);
+    // 开头的一个字节，就是type信息。
     if (((type = rdbLoadObjectType(&payload)) == -1) ||
         ((obj = rdbLoadObject(type,&payload)) == NULL))
     {

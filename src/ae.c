@@ -71,6 +71,7 @@ aeEventLoop *aeCreateEventLoop(int setsize) {
     if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
 
     // 初始化文件事件结构和已就绪文件事件结构数组
+    // 生命为一个指针。 但是可以用作数组。
     eventLoop->events = zmalloc(sizeof(aeFileEvent)*setsize);
     eventLoop->fired = zmalloc(sizeof(aeFiredEvent)*setsize);
     if (eventLoop->events == NULL || eventLoop->fired == NULL) goto err;
@@ -557,6 +558,7 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
         }
 
         // 处理文件事件，阻塞时间由 tvp 决定
+        // 根据 tvp 是否 为空，来确定等待的时间。
         numevents = aeApiPoll(eventLoop, tvp);
         for (j = 0; j < numevents; j++) {
             // 从已就绪数组中获取事件
