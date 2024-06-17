@@ -2078,10 +2078,12 @@ void initServer() {
     createSharedObjects();
     adjustOpenFilesLimit();
     server.el = aeCreateEventLoop(server.maxclients+REDIS_EVENTLOOP_FDSET_INCR);
+    // zmalloc 入参是 字节的数量，分配几个db的内存。 
     server.db = zmalloc(sizeof(redisDb)*server.dbnum);
 
     /* Open the TCP listening socket for the user commands. */
     // 打开 TCP 监听端口，用于等待客户端的命令请求
+    // ipfd 表示server监听的socket上面的fd，用于接受连接事件。 
     if (server.port != 0 &&
         listenToPort(server.port,server.ipfd,&server.ipfd_count) == REDIS_ERR)
         exit(1);
@@ -2157,6 +2159,7 @@ void initServer() {
      * domain sockets. */
     // 为 TCP 连接关联连接应答（accept）处理器
     // 用于接受并应答客户端的 connect() 调用
+    // 使用ae模块的 aeCreateFileEvent 来创建文件的时间，并且注册处理函数。
     for (j = 0; j < server.ipfd_count; j++) {
         if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,
             acceptTcpHandler,NULL) == AE_ERR)

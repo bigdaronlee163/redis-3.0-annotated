@@ -49,6 +49,7 @@
 
 /*
  * 打印错误信息
+ * Redis 优化之 tcp-backlog
  */
 static void anetSetError(char *err, const char *fmt, ...)
 {

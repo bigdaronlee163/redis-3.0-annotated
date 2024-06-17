@@ -14,7 +14,7 @@
             "environment": [],
             "externalConsole": false, // 使用vscode内置的终端。 ·
             "MIMode": "gdb",
-            "preLaunchTask": "redjs_anno_build",
+            // "preLaunchTask": "redjs_anno_build",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

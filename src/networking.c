@@ -86,6 +86,7 @@ redisClient *createClient(int fd) {
     // 因为 Redis 的命令必须在客户端的上下文中使用，所以在执行 Lua 环境中的命令时
     // 需要用到这种伪终端
     if (fd != -1) {
+        // redis tcp 配置。
         // 非阻塞
         anetNonBlock(NULL,fd);
         // 禁用 Nagle 算法
