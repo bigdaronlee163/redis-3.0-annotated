@@ -46,6 +46,7 @@ typedef struct aeApiState {
 
 /*
  * 创建一个新的 epoll 实例，并将它赋值给 eventLoop
+ * eventLoop 中的events和apidata在每个平台的熟实现不同。
  */
 static int aeApiCreate(aeEventLoop *eventLoop) {
 
@@ -106,7 +107,7 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
      *
      * 如果 fd 没有关联任何事件，那么这是一个 ADD 操作。
      *
-     * 如果已经关联了某个/某些事件，那么这是一个 MOD 操作。
+     * 如果已经关联了某个/某些事件，那么这是一个 MOD 操作。 modify 修改操作。
      */
     int op = eventLoop->events[fd].mask == AE_NONE ?
             EPOLL_CTL_ADD : EPOLL_CTL_MOD;
@@ -141,6 +142,7 @@ static void aeApiDelEvent(aeEventLoop *eventLoop, int fd, int delmask) {
     if (mask != AE_NONE) {
         epoll_ctl(state->epfd,EPOLL_CTL_MOD,fd,&ee);
     } else {
+        // 需要一个非空的时间指针。
         /* Note, Kernel < 2.6.9 requires a non null event pointer even for
          * EPOLL_CTL_DEL. */
         epoll_ctl(state->epfd,EPOLL_CTL_DEL,fd,&ee);
@@ -155,6 +157,12 @@ static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
     int retval, numevents = 0;
 
     // 等待时间
+    /*
+    tvp ? (tvp->tv_sec*1000 + tvp->tv_usec/1000) : -1：这是一个条件表达式，
+    用于设置等待事件的时间限制。如果tvp不为空，那么epoll_wait函数将等待事件的发生，
+    或者直到超时为止（即tvp->tv_sec*1000 + tvp->tv_usec/1000毫秒）。
+    如果tvp为空，那么epoll_wait函数将等待任何事件的发生，直到进程被中断为止
+    */
     retval = epoll_wait(state->epfd,state->events,eventLoop->setsize,
             tvp ? (tvp->tv_sec*1000 + tvp->tv_usec/1000) : -1);
 

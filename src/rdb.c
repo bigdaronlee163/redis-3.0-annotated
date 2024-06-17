@@ -1241,6 +1241,7 @@ robj *rdbLoadObject(int rdbtype, rio *rdb) {
             if (o->encoding == REDIS_ENCODING_ZIPLIST &&
                 sdsEncodedObject(ele) &&
                 sdslen(ele->ptr) > server.list_max_ziplist_value)
+                    // 如果元素过多，就将列表转成list。
                     listTypeConvert(o,REDIS_ENCODING_LINKEDLIST);
 
             // ZIPLIST
@@ -1532,6 +1533,7 @@ robj *rdbLoadObject(int rdbtype, rio *rdb) {
                 o->encoding = REDIS_ENCODING_ZIPLIST;
 
                 // 检查是否需要转换编码
+                // 长度为 512 
                 if (ziplistLen(o->ptr) > server.list_max_ziplist_entries)
                     listTypeConvert(o,REDIS_ENCODING_LINKEDLIST);
                 break;

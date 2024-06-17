@@ -58,7 +58,7 @@
 #define AE_FILE_EVENTS 1
 // 时间事件
 #define AE_TIME_EVENTS 2
-// 所有事件
+// 所有事件   3 
 #define AE_ALL_EVENTS (AE_FILE_EVENTS|AE_TIME_EVENTS)
 // 不阻塞，也不进行等待
 #define AE_DONT_WAIT 4
@@ -137,6 +137,7 @@ typedef struct aeTimeEvent {
 /* A fired event
  *
  * 已就绪事件
+ * 包含文件时间和时间事件？  应该就是文件事件，上面的file event都有没具体的fd信息。 
  */
 typedef struct aeFiredEvent {
 
@@ -189,6 +190,7 @@ typedef struct aeEventLoop {
 } aeEventLoop;
 
 /* Prototypes */
+// 几个原型api接口的设计，不同的平台有不同的实现。 
 aeEventLoop *aeCreateEventLoop(int setsize);
 void aeDeleteEventLoop(aeEventLoop *eventLoop);
 void aeStop(aeEventLoop *eventLoop);
