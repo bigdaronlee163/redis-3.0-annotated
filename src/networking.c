@@ -608,7 +608,9 @@ void addReplyDouble(redisClient *c, double d) {
 /* Add a long long as integer reply or bulk len / multi bulk count.
  * 
  * 添加一个 long long 为整数回复，或者 bulk 或 multi bulk 的数目
- *
+ * bulk 是 bulk 字符串，整数用于表示 bulk 字符串的长度。
+ * multi bulk 是 多个 bulk 字符串，整数用于表示 bulk 字符串的数目。
+ * 
  * Basically this is used to output <prefix><long long><crlf>. 
  *
  * 输出格式为 <prefix><long long><crlf>
@@ -627,11 +629,12 @@ void addReplyLongLongWithPrefix(redisClient *c, long long ll, char prefix) {
      * so we have a few shared objects to use if the integer is small
      * like it is most of the times. */
     if (prefix == '*' && ll < REDIS_SHARED_BULKHDR_LEN) {
-        // 多条批量回复
+        // 多条批量回复  【批量回复的数组形式。】
+        // 0 到 32 的表示长度的字符串，可以直接复用。
         addReply(c,shared.mbulkhdr[ll]);
         return;
     } else if (prefix == '$' && ll < REDIS_SHARED_BULKHDR_LEN) {
-        // 批量回复
+        // 批量回复  整数用于表示 bulk 字符串的长度。
         addReply(c,shared.bulkhdr[ll]);
         return;
     }
@@ -647,6 +650,9 @@ void addReplyLongLongWithPrefix(redisClient *c, long long ll, char prefix) {
  * 返回一个整数回复
  * 
  * 格式为 :10086\r\n
+ * 
+ *  shared.czero = createObject(REDIS_STRING,sdsnew(":0\r\n"));
+ *  shared.cone = createObject(REDIS_STRING,sdsnew(":1\r\n"));
  */
 void addReplyLongLong(redisClient *c, long long ll) {
     if (ll == 0)
