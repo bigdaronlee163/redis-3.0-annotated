@@ -83,6 +83,7 @@ struct aeEventLoop;
 typedef void aeFileProc(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask);
 typedef int aeTimeProc(struct aeEventLoop *eventLoop, long long id, void *clientData);
 typedef void aeEventFinalizerProc(struct aeEventLoop *eventLoop, void *clientData);
+// 事件处理前的处理器。 
 typedef void aeBeforeSleepProc(struct aeEventLoop *eventLoop);
 
 /* File event structure

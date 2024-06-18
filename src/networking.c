@@ -259,11 +259,11 @@ robj *dupLastObjectIfNeeded(list *reply) {
 /* -----------------------------------------------------------------------------
  * Low level functions to add more data to output buffers.
  * -------------------------------------------------------------------------- */
-
-/*
+/* 添加字节数组到buf中，字符串。
  * 尝试将回复添加到 c->buf 中
  */
 int _addReplyToBuffer(redisClient *c, char *s, size_t len) {
+    // 容量减去已经使用的空间。
     size_t available = sizeof(c->buf)-c->bufpos;
 
     // 正准备关闭客户端，无须再发送内容
@@ -272,13 +272,16 @@ int _addReplyToBuffer(redisClient *c, char *s, size_t len) {
     /* If there already are entries in the reply list, we cannot
      * add anything more to the static buffer. */
     // 回复链表里已经有内容，再添加内容到 c->buf 里面就是错误了
+    // TODO(DDD): 为什么？ 
+    // redis client 
     if (listLength(c->reply) > 0) return REDIS_ERR;
-
+ 
     /* Check that the buffer has enough space available for this string. */
     // 空间必须满足
     if (len > available) return REDIS_ERR;
 
     // 复制内容到 c->buf 里面
+    // 填充的目的地址， 填充的内容及其长度。
     memcpy(c->buf+c->bufpos,s,len);
     c->bufpos+=len;
 
@@ -299,10 +302,11 @@ void _addReplyObjectToList(redisClient *c, robj *o) {
         incrRefCount(o);
         listAddNodeTail(c->reply,o);
 
-        // 链表中已有缓冲块，尝试将回复添加到块内
-        // 如果当前的块不能容纳回复的话，那么新建一个块
+        // 统计回复链表的大小
         c->reply_bytes += getStringObjectSdsUsedMemory(o);
     } else {
+        // 链表中已有缓冲块，尝试将回复添加到块内
+        // 如果当前的块不能容纳回复的话，那么新建一个块
 
         // 取出表尾的 SDS
         tail = listNodeValue(listLast(c->reply));
@@ -404,7 +408,8 @@ void _addReplyStringToList(redisClient *c, char *s, size_t len) {
  * Higher level functions to queue data on the client output buffer.
  * The following functions are the ones that commands implementations will call.
  * -------------------------------------------------------------------------- */
-
+// addReply系列中的每个函数，都会调用 prepareClientToWrite
+// 因为回复可能是其中之一的。 
 void addReply(redisClient *c, robj *obj) {
 
     // 为客户端安装写处理器到事件循环
@@ -483,17 +488,17 @@ void addReplyString(redisClient *c, char *s, size_t len) {
         _addReplyStringToList(c,s,len);
 }
 
-void addReplyErrorLength(redisClient *c, char *s, size_t len) {
-    addReplyString(c,"-ERR ",5);
-    addReplyString(c,s,len);
-    addReplyString(c,"\r\n",2);
-}
-
 /*
  * 返回一个错误回复
  *
  * 例子 -ERR unknown command 'foobar'
  */
+void addReplyErrorLength(redisClient *c, char *s, size_t len) {
+    addReplyString(c,"-ERR ",5); // 还有个空格。
+    addReplyString(c,s,len); // error 信息。
+    addReplyString(c,"\r\n",2);
+}
+
 void addReplyError(redisClient *c, char *err) {
     addReplyErrorLength(c,err,strlen(err));
 }
@@ -514,17 +519,18 @@ void addReplyErrorFormat(redisClient *c, const char *fmt, ...) {
     sdsfree(s);
 }
 
+/*
+ * 返回一个状态回复
+ *
+ * 例子 +OK\r\n
+ */
+
 void addReplyStatusLength(redisClient *c, char *s, size_t len) {
     addReplyString(c,"+",1);
     addReplyString(c,s,len);
     addReplyString(c,"\r\n",2);
 }
 
-/*
- * 返回一个状态回复
- *
- * 例子 +OK\r\n
- */
 void addReplyStatus(redisClient *c, char *status) {
     addReplyStatusLength(c,status,strlen(status));
 }
@@ -592,6 +598,7 @@ void addReplyDouble(redisClient *c, double d) {
          * different way, so better to handle it in an explicit way. */
         addReplyBulkCString(c, d > 0 ? "inf" : "-inf");
     } else {
+        // %.17g表示保留17位小数。  g 自动选择 %e 或 %f 中合适的表示法
         dlen = snprintf(dbuf,sizeof(dbuf),"%.17g",d);
         slen = snprintf(sbuf,sizeof(sbuf),"$%d\r\n%s\r\n",dlen,dbuf);
         addReplyString(c,sbuf,slen);
@@ -649,7 +656,7 @@ void addReplyLongLong(redisClient *c, long long ll) {
     else
         addReplyLongLongWithPrefix(c,ll,':');
 }
-
+// 学习。
 void addReplyMultiBulkLen(redisClient *c, long length) {
     if (length < REDIS_SHARED_BULKHDR_LEN)
         addReply(c,shared.mbulkhdr[length]);
@@ -1497,7 +1504,8 @@ void processInputBuffer(redisClient *c) {
         if (!(c->flags & REDIS_SLAVE) && clientsArePaused()) return;
 
         /* Immediately abort if the client is in the middle of something. */
-        // REDIS_BLOCKED 状态表示客户端正在被阻塞
+        // REDIS_BLOCKED 状态表示客户端正在被阻塞 【客户端可能是另外一个redis server只不过是slave或者master】
+        // 【人啊，】
         if (c->flags & REDIS_BLOCKED) return;
 
         /* REDIS_CLOSE_AFTER_REPLY closes the connection once the reply is
@@ -1565,6 +1573,11 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
      * at the risk of requiring more read(2) calls. This way the function
      * processMultiBulkBuffer() can avoid copying buffers to create the
      * Redis Object representing the argument. */
+    /*
+    1.  通过调整查询缓冲区的大小，可以提高处理多字节字符串的效率。
+    同时，通过尝试最大化查询缓冲区中包含的SDS字符串的概率，
+    可以避免在处理多字节字符串时需要更多的内存和I/O操作。
+    */
     if (c->reqtype == REDIS_REQ_MULTIBULK && c->multibulklen && c->bulklen != -1
         && c->bulklen >= REDIS_MBULK_BIG_ARG)
     {
@@ -1582,6 +1595,7 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
     // 为查询缓冲区分配空间
     c->querybuf = sdsMakeRoomFor(c->querybuf, readlen);
     // 读入内容到查询缓存
+    // 这里才读入客户端的内容. !!!
     nread = read(fd, c->querybuf+qblen, readlen);
 
     // 读入出错
@@ -1614,7 +1628,7 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
         return;
     }
 
-    // 查询缓冲区长度超出服务器最大缓冲区长度
+    // 查询(query)缓冲区长度超出服务器最大缓冲区长度
     // 清空缓冲区并释放客户端
     if (sdslen(c->querybuf) > server.client_max_querybuf_len) {
         sds ci = catClientInfoString(sdsempty(),c), bytes = sdsempty();
@@ -1627,7 +1641,7 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
         return;
     }
 
-    // 从查询缓存重读取内容，创建参数，并执行命令
+    // 从查询（Query）缓存重读取内容，创建参数，并执行命令
     // 函数会执行到缓存中的所有内容都被处理完为止
     processInputBuffer(c);
 

@@ -629,6 +629,7 @@ void aeMain(aeEventLoop *eventLoop) {
 
     while (!eventLoop->stop) {
 
+
         // 如果有需要在事件处理前执行的函数，那么运行它
         if (eventLoop->beforesleep != NULL)
             eventLoop->beforesleep(eventLoop);

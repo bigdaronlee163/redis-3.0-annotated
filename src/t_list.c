@@ -830,6 +830,7 @@ void lrangeCommand(redisClient *c) {
     rangelen = (end-start)+1;
 
     /* Return the result in form of a multi-bulk reply */
+    // 1. 添加长度的信息。
     addReplyMultiBulkLen(c,rangelen);
 
     if (o->encoding == REDIS_ENCODING_ZIPLIST) {
