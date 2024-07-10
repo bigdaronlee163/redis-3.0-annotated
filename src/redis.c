@@ -2443,6 +2443,7 @@ void call(redisClient *c, int flags) {
     // 执行实现函数
     c->cmd->proc(c);
     // 计算命令执行耗费的时间
+    // 【这个地方，在后面慢日志记录功能里面有使用到。 】
     duration = ustime()-start;
     // 计算命令执行之后的 dirty 值
     dirty = server.dirty-dirty;
